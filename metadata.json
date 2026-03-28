@@ -1,0 +1,7 @@
+{
+  "name": "VeriMedia AI v2",
+  "description": "Advanced digital asset forensics and deepfake detection war room.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
