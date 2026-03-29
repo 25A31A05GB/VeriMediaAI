@@ -35,8 +35,14 @@ import {
   Bell,
   Loader2,
   Bot,
+  Twitter,
+  Instagram,
+  Facebook,
   Image as ImageIcon,
-  Sparkles
+  Sparkles,
+  ShieldAlert,
+  ShieldCheck,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -44,6 +50,7 @@ import { cn } from '../lib/utils';
 import { Hunt } from './Hunt';
 import { ConfidenceEngine } from './ConfidenceEngine';
 import { ExplainableAI } from './ExplainableAI';
+import { DeepfakeDetection } from './DeepfakeDetection';
 import { AIValidation } from './AIValidation';
 import { Dataset } from './Dataset';
 import { APIConsole } from './APIConsole';
@@ -59,7 +66,21 @@ import { PDFExport } from './PDFExport';
 import { Forensics } from './Forensics';
 import { ForensicAssistant } from './ForensicAssistant';
 import { AssetGenerator } from './AssetGenerator';
+import { SocialGuard } from './SocialGuard';
+import { Settings } from './Settings';
 
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Cell
+} from 'recharts';
 import { getLiveIntelligence } from '../services/gemini';
 
 const MonetizePopup: React.FC<{ onClose: () => void }> = ({ onClose }) => (
@@ -195,7 +216,7 @@ const LiveActivityFeed: React.FC<{ isOpen: boolean; setIsOpen: (open: boolean) =
 interface DashboardProps {
   user: any;
   onLogout: () => void;
-  onAnalyze: (file: File, deep?: boolean) => void;
+  onAnalyze: (file: File, deep?: boolean, originalFile?: File) => void;
   onViewCase: (id: string) => void;
   loading: boolean;
   uploadProgress: number;
@@ -203,23 +224,151 @@ interface DashboardProps {
   selectedImage: string | null;
 }
 
-const NoData: React.FC<{ title: string; onAction: () => void }> = ({ title, onAction }) => (
-  <div className="flex flex-col items-center justify-center p-20 bg-s1 border border-white/5 rounded-2xl space-y-6 text-center">
-    <div className="w-16 h-16 bg-blue/10 rounded-full flex items-center justify-center">
-      <AlertTriangle className="w-8 h-8 text-blue" />
+const SystemOverview: React.FC<{ title: string; onAction: () => void }> = ({ title, onAction }) => {
+  const chartData = [
+    { time: '00:00', threats: 12, activity: 45 },
+    { time: '04:00', threats: 18, activity: 52 },
+    { time: '08:00', threats: 25, activity: 88 },
+    { time: '12:00', threats: 45, activity: 120 },
+    { time: '16:00', threats: 32, activity: 95 },
+    { time: '20:00', threats: 22, activity: 70 },
+    { time: '23:59', threats: 15, activity: 50 },
+  ];
+
+  const barData = [
+    { name: 'Twitter', value: 450, color: '#1DA1F2' },
+    { name: 'Instagram', value: 320, color: '#E1306C' },
+    { name: 'Facebook', value: 210, color: '#4267B2' },
+    { name: 'TikTok', value: 580, color: '#000000' },
+  ];
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h2 className="text-4xl font-black tracking-tighter uppercase italic leading-none">Global Forensic Mesh</h2>
+          <p className="text-slate-500 text-[10px] font-mono uppercase tracking-[0.2em]">Real-time Neural Activity & Threat Detection</p>
+        </div>
+        <button 
+          onClick={onAction}
+          className="px-6 py-3 bg-blue text-black font-black text-xs uppercase tracking-widest hover:bg-blue/90 transition-all rounded-xl shadow-[0_0_30px_rgba(0,180,255,0.2)]"
+        >
+          Initialize New Scan →
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Activity Chart */}
+        <div className="lg:col-span-2 glass p-8 rounded-2xl border-white/10 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-mono uppercase tracking-widest text-slate-500">Neural Traffic (24h)</h3>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue" />
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Activity</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-red" />
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Threats</span>
+              </div>
+            </div>
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorActivity" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00B4FF" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#00B4FF" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorThreats" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FF4444" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#FF4444" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="rgba(255,255,255,0.2)" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false}
+                />
+                <YAxis 
+                  stroke="rgba(255,255,255,0.2)" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false}
+                />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#050505', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                  itemStyle={{ fontSize: '10px', textTransform: 'uppercase', fontFamily: 'monospace' }}
+                />
+                <Area type="monotone" dataKey="activity" stroke="#00B4FF" fillOpacity={1} fill="url(#colorActivity)" strokeWidth={2} />
+                <Area type="monotone" dataKey="threats" stroke="#FF4444" fillOpacity={1} fill="url(#colorThreats)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Platform Distribution */}
+        <div className="glass p-8 rounded-2xl border-white/10 space-y-6">
+          <h3 className="text-xs font-mono uppercase tracking-widest text-slate-500">Platform Exposure</h3>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} layout="vertical">
+                <XAxis type="number" hide />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  stroke="rgba(255,255,255,0.5)" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false}
+                  width={80}
+                />
+                <Tooltip 
+                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                  contentStyle={{ backgroundColor: '#050505', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                  {barData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="space-y-3">
+            <p className="text-[10px] text-slate-500 leading-relaxed uppercase tracking-wider">
+              Neural nodes are currently prioritizing TikTok and Twitter for high-risk deepfake propagation.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Total Scans', value: '12,482', icon: Activity, color: 'text-blue' },
+          { label: 'Deepfakes Blocked', value: '842', icon: ShieldAlert, color: 'text-red' },
+          { label: 'Neural Nodes', value: '1,204', icon: Cpu, color: 'text-purple-400' },
+          { label: 'Global Rank', value: '#12', icon: Star, color: 'text-gold' },
+        ].map((stat, i) => (
+          <div key={i} className="glass p-6 rounded-2xl border-white/10 flex items-center gap-4 group hover:border-white/20 transition-all">
+            <div className={cn("w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover:scale-110 transition-transform", stat.color)}>
+              <stat.icon className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{stat.label}</p>
+              <p className="text-xl font-black tracking-tighter italic">{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
-    <div className="space-y-2">
-      <h3 className="text-xl font-black tracking-tighter uppercase italic">No Analysis Data</h3>
-      <p className="text-slate-400 text-sm max-w-xs">You need to upload and analyze media before accessing the {title} engine.</p>
-    </div>
-    <button 
-      onClick={onAction}
-      className="bg-blue text-black px-6 py-2 rounded font-bold text-xs uppercase tracking-widest hover:bg-blue/90 transition-all"
-    >
-      Upload Media Now →
-    </button>
-  </div>
-);
+  );
+};
 
 const AnalysisResultSummary: React.FC<{ analysis: any; selectedImage: string | null; onFullReport: () => void }> = ({ analysis, selectedImage, onFullReport }) => {
   if (!analysis) return null;
@@ -332,6 +481,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isActivityFeedOpen, setIsActivityFeedOpen] = useState(true);
   const [isDeepAnalysis, setIsDeepAnalysis] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isComparisonMode, setIsComparisonMode] = useState(false);
+  const [suspectFile, setSuspectFile] = useState<File | null>(null);
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
+  const [connectedAccounts, setConnectedAccounts] = useState<{ platform: string; username: string }[]>(() => {
+    const saved = localStorage.getItem('verimedia_social_accounts');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('verimedia_social_accounts');
+      if (saved) setConnectedAccounts(JSON.parse(saved));
+    };
+    window.addEventListener('storage', handleStorageChange);
+    // Also listen for custom events if needed, but storage event works for cross-tab
+    // For same-tab, we can use a custom event
+    const handleAccountsUpdate = () => {
+      const saved = localStorage.getItem('verimedia_social_accounts');
+      if (saved) setConnectedAccounts(JSON.parse(saved));
+    };
+    window.addEventListener('social-accounts-updated', handleAccountsUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('social-accounts-updated', handleAccountsUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     const handleOpenChat = () => setIsChatOpen(true);
@@ -339,7 +515,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return () => window.removeEventListener('open-ai-chat', handleOpenChat);
   }, []);
 
-  const forensicTabs = ['res', 'hm', 'for', 'neu', 'conf', 'xai', 'valid', 'direct', 'rpt', 'email', 'pdf', 'ai-assistant', 'asset-gen'];
+  const forensicTabs = ['res', 'hm', 'for', 'neu', 'conf', 'xai', 'valid', 'direct', 'rpt', 'email', 'pdf', 'ai-assistant', 'asset-gen', 'deepfake', 'social', 'settings'];
   const imageOnlyTabs = ['slider', 'exif', 'channels'];
   
   const needsAnalysis = forensicTabs.includes(activeTab) && !analysis;
@@ -347,14 +523,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const renderTabContent = () => {
     if (needsAnalysis) {
-      return <NoData title={menuItems.find(i => i.id === activeTab)?.label || 'Forensic'} onAction={() => setActiveTab('up')} />;
+      return <SystemOverview title={menuItems.find(i => i.id === activeTab)?.label || 'Forensic'} onAction={() => setActiveTab('up')} />;
     }
     
     if (needsImage) {
-      return <NoData title={menuItems.find(i => i.id === activeTab)?.label || 'Image Analysis'} onAction={() => setActiveTab('up')} />;
+      return <SystemOverview title={menuItems.find(i => i.id === activeTab)?.label || 'Image Analysis'} onAction={() => setActiveTab('up')} />;
     }
 
     switch (activeTab) {
+      case 'settings': return <Settings />;
+      case 'social': return <SocialGuard />;
+      case 'deepfake': return <DeepfakeDetection analysis={analysis} selectedImage={selectedImage} />;
       case 'hunt': return <Hunt analysis={analysis} />;
       case 'conf': return <ConfidenceEngine analysis={analysis} />;
       case 'xai': return <ExplainableAI analysis={analysis} />;
@@ -482,6 +661,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const menuItems = [
     { id: 'up', label: 'Upload & Analyze', icon: Upload, group: 'Analysis' },
+    { id: 'deepfake', label: 'Deepfake Detection', icon: Scan, group: 'Analysis' },
+    { id: 'social', label: 'Social Guard', icon: ShieldCheck, group: 'Analysis' },
     { id: 'res', label: 'Results', icon: Activity, group: 'Analysis' },
     { id: 'hm', label: 'Heatmap', icon: Zap, group: 'Analysis' },
     { id: 'for', label: 'Forensics', icon: Scan, group: 'Analysis' },
@@ -498,6 +679,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { id: 'valid', label: 'AI Validation', icon: FileCheck, group: 'System' },
     { id: 'dataset', label: 'Dataset', icon: Database, group: 'System' },
     { id: 'api', label: 'API Console', icon: Terminal, group: 'System' },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon, group: 'System' },
     { id: 'feedback', label: 'Feedback', icon: Mail, group: 'System' },
     
     { id: 'direct', label: 'Direct Search', icon: Search, group: 'Tools' },
@@ -660,6 +842,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </h1>
           </div>
           <div className="flex items-center gap-6">
+            <div className="hidden lg:flex items-center gap-3 border-r border-white/10 pr-6">
+              {['twitter', 'instagram', 'facebook'].map(p => {
+                const isConnected = connectedAccounts.some(a => a.platform === p);
+                return (
+                  <div 
+                    key={p} 
+                    className={cn(
+                      "w-6 h-6 rounded-full flex items-center justify-center transition-all",
+                      isConnected ? "bg-blue/20 text-blue" : "bg-white/5 text-slate-600"
+                    )}
+                    title={isConnected ? `${p.charAt(0).toUpperCase() + p.slice(1)} Connected` : `${p.charAt(0).toUpperCase() + p.slice(1)} Disconnected`}
+                  >
+                    {p === 'twitter' && <Twitter className="w-3 h-3" />}
+                    {p === 'instagram' && <Instagram className="w-3 h-3" />}
+                    {p === 'facebook' && <Facebook className="w-3 h-3" />}
+                  </div>
+                );
+              })}
+            </div>
             <div className="hidden md:flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-green animate-pulse" />
@@ -732,6 +933,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </button>
                   <div className="h-6 w-px bg-white/10 mx-2" />
                   <button 
+                    onClick={() => setIsComparisonMode(!isComparisonMode)}
+                    className={cn(
+                      "px-4 py-1.5 rounded text-[10px] font-mono uppercase tracking-widest transition-all flex items-center gap-2",
+                      isComparisonMode ? "bg-gold text-black font-bold shadow-lg shadow-gold/20" : "text-slate-500 hover:text-white"
+                    )}
+                  >
+                    <Layers className={cn("w-3 h-3", isComparisonMode ? "text-black" : "text-gold")} />
+                    Comparison Mode
+                  </button>
+                  <button 
                     onClick={() => setIsDeepAnalysis(!isDeepAnalysis)}
                     className={cn(
                       "px-4 py-1.5 rounded text-[10px] font-mono uppercase tracking-widest transition-all flex items-center gap-2",
@@ -743,51 +954,177 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </button>
                 </div>
 
-                <div className="glass p-8 lg:p-12 rounded-2xl border-dashed border-2 border-white/10 hover:border-blue/50 transition-all group relative overflow-hidden flex flex-col items-center justify-center text-center space-y-6">
-                  <input 
-                    type="file" 
-                    accept="image/*,video/*"
-                    className="absolute inset-0 opacity-0 cursor-pointer z-20" 
-                    onChange={(e) => e.target.files?.[0] && onAnalyze(e.target.files[0], isDeepAnalysis)}
-                  />
-                  <div className="w-20 h-20 rounded-full bg-blue/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Upload className="w-10 h-10 text-blue" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-black tracking-tighter uppercase italic">Upload Media for Forensic Analysis</h3>
-                    <p className="text-slate-400 text-sm">Drag & drop image or video (Max 50MB)</p>
-                  </div>
-                  <div className="flex gap-3">
-                    {['PNG', 'JPG', 'WEBP', 'MP4', 'MOV'].map(ext => (
-                      <span key={ext} className="px-3 py-1 rounded bg-white/5 text-[10px] font-mono text-slate-500 border border-white/5">{ext}</span>
-                    ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className={cn(
+                    "glass p-8 rounded-2xl border-dashed border-2 transition-all group relative overflow-hidden flex flex-col items-center justify-center text-center space-y-4 min-h-[300px]",
+                    suspectFile ? "border-blue/50 bg-blue/5" : "border-white/10 hover:border-blue/50"
+                  )}>
+                    <input 
+                      type="file" 
+                      accept="image/*,video/*"
+                      className="absolute inset-0 opacity-0 cursor-pointer z-20" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 50 * 1024 * 1024) {
+                            toast.error("File size exceeds 50MB limit.");
+                            return;
+                          }
+                          setSuspectFile(file);
+                          if (!isComparisonMode) {
+                            onAnalyze(file, isDeepAnalysis);
+                          }
+                        }
+                      }}
+                    />
+                    <div className="w-16 h-16 rounded-full bg-blue/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Upload className="w-8 h-8 text-blue" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-black tracking-tighter uppercase italic">
+                        {suspectFile ? suspectFile.name : "Upload Suspect Media"}
+                      </h3>
+                      <p className="text-slate-400 text-[10px] uppercase tracking-widest">
+                        {isComparisonMode ? "Primary target for comparison" : "Drag & drop image or video"}
+                      </p>
+                    </div>
+                    {suspectFile && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSuspectFile(null);
+                        }}
+                        className="absolute top-2 right-2 p-1 bg-red/20 text-red rounded-full hover:bg-red/30 z-30"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
-                  {loading && (
-                    <div className="absolute inset-0 bg-s1/95 backdrop-blur-sm z-30 flex flex-col items-center justify-center p-12">
-                      <div className="w-full max-w-sm space-y-6">
-                        <div className="flex items-center justify-between text-xs font-mono">
-                          <span className="text-blue animate-pulse uppercase tracking-widest">Analyzing Neural Layers...</span>
-                          <span className="text-blue">{uploadProgress}%</span>
-                        </div>
-                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                          <motion.div 
-                            className="h-full bg-blue shadow-[0_0_15px_rgba(0,180,255,0.5)]" 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${uploadProgress}%` }}
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 gap-2">
-                          {['Running Triple-Hash Consensus', 'Artifact Detection Active', 'Neural Feature Extraction'].map((step, i) => (
-                            <div key={i} className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest">
-                              <div className={cn("w-1.5 h-1.5 rounded-full", uploadProgress > (i + 1) * 30 ? "bg-green" : "bg-slate-700")} />
-                              {step}
-                            </div>
-                          ))}
-                        </div>
+                  {isComparisonMode && (
+                    <div className={cn(
+                      "glass p-8 rounded-2xl border-dashed border-2 transition-all group relative overflow-hidden flex flex-col items-center justify-center text-center space-y-4 min-h-[300px]",
+                      originalFile ? "border-green/50 bg-green/5" : "border-white/10 hover:border-green/50"
+                    )}>
+                      <input 
+                        type="file" 
+                        accept="image/*,video/*"
+                        className="absolute inset-0 opacity-0 cursor-pointer z-20" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 50 * 1024 * 1024) {
+                              toast.error("File size exceeds 50MB limit.");
+                              return;
+                            }
+                            setOriginalFile(file);
+                          }
+                        }}
+                      />
+                      <div className="w-16 h-16 rounded-full bg-green/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <CheckCircle2 className="w-8 h-8 text-green" />
                       </div>
+                      <div className="space-y-1">
+                        <h3 className="text-lg font-black tracking-tighter uppercase italic">
+                          {originalFile ? originalFile.name : "Upload Original Media"}
+                        </h3>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-widest">Reference for comparison</p>
+                      </div>
+                      {originalFile && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOriginalFile(null);
+                          }}
+                          className="absolute top-2 right-2 p-1 bg-red/20 text-red rounded-full hover:bg-red/30 z-30"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   )}
+                </div>
+
+                {isComparisonMode && (
+                  <div className="flex justify-center pt-4">
+                    <button 
+                      disabled={!suspectFile || !originalFile || loading}
+                      onClick={() => suspectFile && originalFile && onAnalyze(suspectFile, isDeepAnalysis, originalFile)}
+                      className="bg-blue text-black px-12 py-4 rounded-xl font-black text-sm uppercase tracking-[0.2em] hover:bg-blue/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(0,180,255,0.3)]"
+                    >
+                      {loading ? "Neural Engine Processing..." : "Start Forensic Comparison →"}
+                    </button>
+                  </div>
+                )}
+
+                {!isComparisonMode && loading && (
+                  <div className="glass p-8 rounded-2xl border-white/10 flex flex-col items-center justify-center space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="w-6 h-6 text-blue animate-spin" />
+                      <span className="text-sm font-black tracking-tighter uppercase italic">Neural Analysis in Progress...</span>
+                    </div>
+                    <div className="w-full max-w-sm space-y-2">
+                      <div className="flex justify-between text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+                        <span>Progress</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-blue"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Social Guard Status */}
+                <div className="glass p-6 rounded-2xl border-white/10 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <ShieldCheck className="w-5 h-5 text-blue" />
+                      <h3 className="font-black text-xs uppercase tracking-widest italic">Social Guard Status</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={cn("w-2 h-2 rounded-full", connectedAccounts.length > 0 ? "bg-green animate-pulse" : "bg-slate-600")} />
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
+                        {connectedAccounts.length > 0 ? "Active Monitoring" : "Standby Mode"}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                    {['twitter', 'instagram', 'facebook'].map(p => {
+                      const isConnected = connectedAccounts.some(a => a.platform === p);
+                      return (
+                        <div 
+                          key={p} 
+                          className={cn(
+                            "p-3 rounded-xl border flex flex-col items-center gap-2 transition-all",
+                            isConnected ? "bg-blue/10 border-blue/20 text-blue" : "bg-white/5 border-white/5 text-slate-500 grayscale"
+                          )}
+                        >
+                          {p === 'twitter' && <Twitter className="w-5 h-5" />}
+                          {p === 'instagram' && <Instagram className="w-5 h-5" />}
+                          {p === 'facebook' && <Facebook className="w-5 h-5" />}
+                          <div className="flex flex-col items-center">
+                            <span className="text-[8px] font-mono uppercase tracking-widest">{p}</span>
+                            <span className={cn("text-[10px] font-bold", isConnected ? "text-blue" : "text-slate-600")}>
+                              {isConnected ? "Connected" : "Offline"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <button 
+                    onClick={() => setActiveTab('social')}
+                    className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-[10px] font-mono uppercase tracking-widest transition-all border border-white/5 flex items-center justify-center gap-2 group"
+                  >
+                    Manage Social Connections <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                  </button>
                 </div>
 
                 {/* Recent Activity */}
@@ -823,6 +1160,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
               {/* Sidebar Info */}
               <div className="space-y-6">
+                {/* Deepfake Detection Card */}
+                <div className="glass p-6 rounded-xl border-purple-500/30 bg-purple-500/5 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+                      <ShieldAlert className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black tracking-tighter uppercase italic">Deepfake Detection</h3>
+                      <p className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Advanced Neural Scan</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                    Activate high-thinking mode to identify deepfaked, cropped, or manipulated content with pixel-level precision.
+                  </p>
+                  <button 
+                    onClick={() => {
+                      setIsDeepAnalysis(true);
+                      setActiveTab('deepfake');
+                    }}
+                    className="w-full bg-purple-600 text-white py-2 rounded font-black text-[10px] uppercase tracking-widest hover:bg-purple-500 transition-all shadow-lg shadow-purple-500/20"
+                  >
+                    Activate Deep Scan
+                  </button>
+                </div>
+
                 {/* Live Feed */}
                 <div className="glass rounded-xl overflow-hidden border-blue/20">
                   <div className="p-4 border-b border-white/5 bg-blue/5 flex items-center justify-between">
@@ -874,19 +1236,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <p className="text-[10px] font-bold text-blue uppercase tracking-widest">Pro Tip</p>
                       <p className="text-xs text-slate-400 leading-relaxed">Use "Hunt Mode" to track where your assets are being shared across 340+ social platforms in real-time.</p>
                     </div>
-                    <div className="space-y-3">
-                      <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Live Network Status</p>
-                      {[
-                        { label: 'Bing Visual API', status: 'Connected' },
-                        { label: 'Google Lens Node', status: 'Connected' },
-                        { label: 'Neural Cluster', status: 'Active' },
-                      ].map((s, i) => (
-                        <div key={i} className="flex items-center justify-between text-[11px]">
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Live Network Status</p>
+                    {[
+                      { label: 'Bing Visual API', status: 'Connected', load: 12 },
+                      { label: 'Google Lens Node', status: 'Connected', load: 45 },
+                      { label: 'Neural Cluster', status: 'Active', load: 88 },
+                    ].map((s, i) => (
+                      <div key={i} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px]">
                           <span className="text-slate-400">{s.label}</span>
                           <span className="text-green font-mono uppercase tracking-widest">{s.status}</span>
                         </div>
-                      ))}
-                    </div>
+                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                          <motion.div 
+                            className={cn(
+                              "h-full transition-all duration-1000",
+                              s.load > 80 ? "bg-red" : s.load > 50 ? "bg-gold" : "bg-blue"
+                            )}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${s.load}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                   </div>
                 </div>
               </div>

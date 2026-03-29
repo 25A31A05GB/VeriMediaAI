@@ -39,8 +39,12 @@ export const Forensics: React.FC<ForensicsProps> = ({ analysis, selectedImage, o
         const query = analysis.findings?.[0] || `${analysis.verdict} media analysis`;
         const results = await searchMedia(query);
         setWebIntelligence(results);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch web intelligence:", err);
+        toast.error("Web intelligence scan failed", {
+          description: err.message || "Could not connect to live social media data.",
+          duration: 4000
+        });
       } finally {
         setLoadingIntel(false);
       }

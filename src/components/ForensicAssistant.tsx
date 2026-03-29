@@ -15,7 +15,7 @@ interface ForensicAssistantProps {
 
 export const ForensicAssistant: React.FC<ForensicAssistantProps> = ({ analysis }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: "Hello! I'm your VeriMedia AI Forensic Assistant. How can I help you investigate media today?" }
+    { role: 'model', text: "Hello! I'm VeriMedia AI. How can I help you investigate media today?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +61,7 @@ export const ForensicAssistant: React.FC<ForensicAssistantProps> = ({ analysis }
             <Bot className="w-5 h-5 text-blue-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">Forensic Neural Assistant</h3>
+            <h3 className="text-sm font-semibold text-white">VeriMedia AI</h3>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-[10px] text-white/50 uppercase tracking-wider">Gemini 3.1 Pro Active</span>

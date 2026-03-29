@@ -13,6 +13,8 @@ export const deepAnalyzeMedia = async (base64Data: string, mimeType: string = "i
             {
               text: `Perform an exhaustive, high-thinking forensic analysis on this ${mimeType.startsWith('video') ? 'video' : 'image'}. 
               Examine every pixel layer, metadata anomaly, and neural artifact.
+              Identify all deepfaked, cropped, or manipulated content within the media.
+              Use Google Search to cross-reference this media with known public instances to check for propagation or debunking information.
               Provide a detailed report in JSON format with the following structure:
               {
                 "verdict": "Deepfake" | "Modified" | "Clean" | "Suspicious",
@@ -51,6 +53,7 @@ export const deepAnalyzeMedia = async (base64Data: string, mimeType: string = "i
       config: {
         thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
         responseMimeType: "application/json",
+        tools: [{ googleSearch: {} }],
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -110,9 +113,136 @@ export const deepAnalyzeMedia = async (base64Data: string, mimeType: string = "i
     });
 
     return JSON.parse(response.text);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Deep Analysis Error:", error);
-    throw error;
+    if (error.message?.includes("API key")) throw new Error("Invalid API Key. Please check your settings.");
+    if (error.message?.includes("network")) throw new Error("Network error. Please check your connection.");
+    throw new Error(`Neural analysis failed: ${error.message || "Unknown error"}`);
+  }
+};
+
+// Side-by-side Comparison Analysis
+export const compareMedia = async (suspectBase64: string, originalBase64: string, mimeType: string = "image/jpeg") => {
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-pro-preview",
+      contents: [
+        {
+          parts: [
+            {
+              text: `Perform a side-by-side forensic comparison between the SUSPECT media and the ORIGINAL media. 
+              Identify all deepfaked, cropped, or manipulated content within the suspect media by comparing it to the original.
+              Pinpoint exact differences in pixel consistency, lighting, noise, and neural artifacts.
+              Use Google Search to verify the authenticity of the original media if needed.
+              Provide a detailed report in JSON format with the following structure:
+              {
+                "verdict": "Deepfake" | "Modified" | "Clean" | "Suspicious",
+                "riskScore": number (0-100),
+                "confidence": number (0-1),
+                "findings": string[],
+                "technicalMetrics": {
+                  "ela": string,
+                  "noise": string,
+                  "ghosting": string,
+                  "metadata": string,
+                  "pixelConsistency": string,
+                  "neuralArtifacts": string
+                },
+                "explainableAI": {
+                  "reasoning": string,
+                  "visualCues": string[],
+                  "modelConfidence": {
+                    "layer1": number,
+                    "layer2": number,
+                    "layer3": number
+                  }
+                },
+                "anomalies": { "x": number, "y": number, "radius": number, "type": string }[]
+              }`
+            },
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: suspectBase64.split(',')[1]
+              }
+            },
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: originalBase64.split(',')[1]
+              }
+            }
+          ]
+        }
+      ],
+      config: {
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+        responseMimeType: "application/json",
+        tools: [{ googleSearch: {} }],
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            verdict: { type: Type.STRING },
+            riskScore: { type: Type.NUMBER },
+            confidence: { type: Type.NUMBER },
+            findings: { 
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            },
+            technicalMetrics: {
+              type: Type.OBJECT,
+              properties: {
+                ela: { type: Type.STRING },
+                noise: { type: Type.STRING },
+                ghosting: { type: Type.STRING },
+                metadata: { type: Type.STRING },
+                pixelConsistency: { type: Type.STRING },
+                neuralArtifacts: { type: Type.STRING }
+              }
+            },
+            explainableAI: {
+              type: Type.OBJECT,
+              properties: {
+                reasoning: { type: Type.STRING },
+                visualCues: { 
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING }
+                },
+                modelConfidence: {
+                  type: Type.OBJECT,
+                  properties: {
+                    layer1: { type: Type.NUMBER },
+                    layer2: { type: Type.NUMBER },
+                    layer3: { type: Type.NUMBER }
+                  }
+                }
+              }
+            },
+            anomalies: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  x: { type: Type.NUMBER },
+                  y: { type: Type.NUMBER },
+                  radius: { type: Type.NUMBER },
+                  type: { type: Type.STRING }
+                },
+                required: ["x", "y", "radius", "type"]
+              }
+            }
+          },
+          required: ["verdict", "riskScore", "confidence", "findings", "technicalMetrics", "explainableAI", "anomalies"]
+        }
+      }
+    });
+
+    return JSON.parse(response.text);
+  } catch (error: any) {
+    console.error("Gemini Comparison Error:", error);
+    if (error.message?.includes("API key")) throw new Error("Invalid API Key. Please check your settings.");
+    if (error.message?.includes("network")) throw new Error("Network error. Please check your connection.");
+    throw new Error(`Comparison analysis failed: ${error.message || "Unknown error"}`);
   }
 };
 
@@ -126,6 +256,7 @@ export const analyzeMedia = async (base64Data: string, mimeType: string = "image
           parts: [
             {
               text: `Perform a quick forensic scan on this ${mimeType.startsWith('video') ? 'video' : 'image'}. Detect modifications or deepfake indicators.
+              Use Google Search to cross-reference this media with known public instances.
               Return JSON: { verdict, riskScore, confidence, findings: string[], anomalies: {x, y, radius, type}[] }`
             },
             {
@@ -138,14 +269,17 @@ export const analyzeMedia = async (base64Data: string, mimeType: string = "image
         }
       ],
       config: {
-        responseMimeType: "application/json"
+        responseMimeType: "application/json",
+        tools: [{ googleSearch: {} }]
       }
     });
 
     return JSON.parse(response.text);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Quick Analysis Error:", error);
-    throw error;
+    if (error.message?.includes("API key")) throw new Error("Invalid API Key. Please check your settings.");
+    if (error.message?.includes("network")) throw new Error("Network error. Please check your connection.");
+    throw new Error(`Quick analysis failed: ${error.message || "Unknown error"}`);
   }
 };
 
@@ -177,7 +311,7 @@ export const generateForensicImage = async (prompt: string, size: "1K" | "2K" | 
 
 // Multi-turn Chat
 export const startForensicChat = (context?: any) => {
-  let systemInstruction = "You are the VeriMedia AI Forensic Assistant. You help users analyze media for deepfakes, explain forensic metrics (ELA, SSIM, Neural Artifacts), and provide legal guidance for DMCA takedowns. Be professional, technical, and precise.";
+  let systemInstruction = "You are the VeriMedia AI. You help users analyze media for deepfakes, explain forensic metrics (ELA, SSIM, Neural Artifacts), and provide legal guidance for DMCA takedowns. Be professional, technical, and precise. Always refer to yourself as VeriMedia AI.";
   
   if (context) {
     systemInstruction += `\n\nCurrent Analysis Context: ${JSON.stringify(context)}. Use this data to answer specific questions about the analyzed media.`;

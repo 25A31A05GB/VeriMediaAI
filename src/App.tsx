@@ -6,7 +6,7 @@ import { Dashboard } from './components/Dashboard';
 import { Forensics } from './components/Forensics';
 import { Payment } from './components/Payment';
 import { Auth } from './components/Auth';
-import { analyzeMedia, deepAnalyzeMedia } from './services/gemini';
+import { analyzeMedia, deepAnalyzeMedia, compareMedia } from './services/gemini';
 
 type View = 'landing' | 'login' | 'signup' | 'dashboard' | 'forensics' | 'payment';
 
@@ -19,11 +19,16 @@ export default function App() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [pendingPlan, setPendingPlan] = useState<{ plan: string, price: string } | null>(null);
 
-  const handleAnalyze = async (file: File, deep: boolean = false) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target?.result as string;
-      setSelectedImage(base64);
+  const handleAnalyze = async (file: File, deep: boolean = false, originalFile?: File) => {
+    const readFile = (f: File): Promise<string> => new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.readAsDataURL(f);
+    });
+
+    try {
+      const suspectBase64 = await readFile(file);
+      setSelectedImage(suspectBase64);
       setLoading(true);
       setUploadProgress(0);
 
@@ -32,7 +37,14 @@ export default function App() {
       }, 200);
 
       try {
-        const data = deep ? await deepAnalyzeMedia(base64, file.type) : await analyzeMedia(base64, file.type);
+        let data;
+        if (originalFile) {
+          const originalBase64 = await readFile(originalFile);
+          data = await compareMedia(suspectBase64, originalBase64, file.type);
+        } else {
+          data = deep ? await deepAnalyzeMedia(suspectBase64, file.type) : await analyzeMedia(suspectBase64, file.type);
+        }
+        
         setUploadProgress(100);
         setAnalysis(data);
         setView('forensics');
@@ -47,8 +59,9 @@ export default function App() {
         setLoading(false);
         clearInterval(interval);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      toast.error("Failed to read file. Please try again.");
+    }
   };
 
   return (
