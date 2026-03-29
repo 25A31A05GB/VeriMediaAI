@@ -141,7 +141,7 @@ export const SocialGuard: React.FC = () => {
       
       const results = await response.json();
       setScanProgress(100);
-      setScanResults(results);
+      setScanResults(Array.isArray(results) ? results : []);
       toast.success(`Scan complete for ${username}`);
     } catch (error) {
       console.error('Scan error:', error);
@@ -471,7 +471,7 @@ export const SocialGuard: React.FC = () => {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {result.findings.map((finding, j) => (
+                        {result.findings?.map((finding, j) => (
                           <div key={j} className="flex items-start gap-2 text-xs text-slate-400">
                             <div className="w-1 h-1 rounded-full bg-blue mt-1.5 shrink-0" />
                             {finding}

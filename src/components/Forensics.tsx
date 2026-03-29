@@ -226,7 +226,7 @@ export const Forensics: React.FC<ForensicsProps> = ({ analysis, selectedImage, o
             )}
 
             <div className="space-y-4">
-              {analysis?.findings.map((finding: string, i: number) => (
+              {analysis?.findings?.map((finding: string, i: number) => (
                 <div key={i} className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-blue/20 transition-colors">
                   <div className="w-8 h-8 rounded-lg bg-blue/10 flex items-center justify-center shrink-0">
                     <Scan className="w-4 h-4 text-blue" />

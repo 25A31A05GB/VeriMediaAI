@@ -19,6 +19,20 @@ export default function App() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [pendingPlan, setPendingPlan] = useState<{ plan: string, price: string } | null>(null);
 
+  React.useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SOCIAL_AUTH_SUCCESS' && event.data?.mode === 'login') {
+        const { user } = event.data;
+        setUser(user);
+        if (pendingPlan) setView('payment');
+        else setView('dashboard');
+        toast.success(`Welcome back, ${user.name}!`);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [pendingPlan]);
+
   const handleAnalyze = async (file: File, deep: boolean = false, originalFile?: File) => {
     const readFile = (f: File): Promise<string> => new Promise((resolve) => {
       const reader = new FileReader();

@@ -105,7 +105,8 @@ async function startServer() {
   // Social Media OAuth Routes
   app.get("/api/auth/social/url/:platform", (req, res) => {
     const { platform } = req.params;
-    const redirectUri = `${process.env.APP_URL || 'http://localhost:3000'}/auth/callback/${platform}`;
+    const { mode } = req.query; // 'login' or 'connect'
+    const redirectUri = `${process.env.APP_URL || 'http://localhost:3000'}/auth/callback/${platform}${mode === 'login' ? '?mode=login' : ''}`;
     
     let authUrl = "";
     if (platform === "twitter") {
@@ -114,7 +115,7 @@ async function startServer() {
         redirect_uri: redirectUri,
         response_type: "code",
         scope: "tweet.read users.read",
-        state: "state",
+        state: mode === 'login' ? "login" : "connect",
         code_challenge: "challenge",
         code_challenge_method: "plain"
       });
@@ -124,7 +125,8 @@ async function startServer() {
         client_id: process.env.INSTAGRAM_CLIENT_ID || "MOCK_INSTAGRAM_ID",
         redirect_uri: redirectUri,
         response_type: "code",
-        scope: "user_profile,user_media"
+        scope: "user_profile,user_media",
+        state: mode === 'login' ? "login" : "connect"
       });
       authUrl = `https://api.instagram.com/oauth/authorize?${params}`;
     } else if (platform === "facebook") {
@@ -132,7 +134,8 @@ async function startServer() {
         client_id: process.env.FACEBOOK_CLIENT_ID || "MOCK_FACEBOOK_ID",
         redirect_uri: redirectUri,
         response_type: "code",
-        scope: "public_profile,email"
+        scope: "public_profile,email",
+        state: mode === 'login' ? "login" : "connect"
       });
       authUrl = `https://www.facebook.com/v12.0/dialog/oauth?${params}`;
     }
@@ -142,15 +145,18 @@ async function startServer() {
 
   app.get("/auth/callback/:platform", (req, res) => {
     const { platform } = req.params;
-    const { code } = req.query;
+    const { code, state } = req.query;
+    const mode = state === 'login' ? 'login' : 'connect';
     
     // In a real app, you'd exchange the code for tokens here
-    console.log(`Received ${platform} auth code: ${code}`);
+    console.log(`Received ${platform} auth code: ${code} in ${mode} mode`);
+
+    const user = mode === 'login' ? { email: `social_${platform}@verimedia.ai`, name: `${platform.charAt(0).toUpperCase() + platform.slice(1)} User` } : null;
 
     res.send(`
       <html>
         <head>
-          <title>VeriMedia AI - Secure Connection</title>
+          <title>VeriMedia AI - Secure ${mode === 'login' ? 'Login' : 'Connection'}</title>
           <style>
             body { 
               background: #050505; 
@@ -203,14 +209,19 @@ async function startServer() {
           <div class="glow"></div>
           <div class="container">
             <div class="loader"></div>
-            <h2>Handshake Verified</h2>
-            <p>Your ${platform} account has been successfully integrated into the VeriMedia forensic mesh.</p>
+            <h2>${mode === 'login' ? 'Authentication' : 'Handshake'} Verified</h2>
+            <p>${mode === 'login' ? 'Welcome back. Your identity has been confirmed via ' + platform + '.' : 'Your ' + platform + ' account has been successfully integrated into the VeriMedia forensic mesh.'}</p>
             <p style="font-size: 10px; font-family: monospace; text-transform: uppercase; margin-top: 20px; opacity: 0.5;">Closing secure tunnel...</p>
           </div>
           <script>
             setTimeout(() => {
               if (window.opener) {
-                window.opener.postMessage({ type: 'SOCIAL_AUTH_SUCCESS', platform: '${platform}' }, '*');
+                window.opener.postMessage({ 
+                  type: 'SOCIAL_AUTH_SUCCESS', 
+                  platform: '${platform}', 
+                  mode: '${mode}',
+                  user: ${JSON.stringify(user)}
+                }, '*');
                 window.close();
               } else {
                 window.location.href = '/';
@@ -252,7 +263,17 @@ async function startServer() {
         }
       });
 
-      res.json(JSON.parse(response.text || '[]'));
+      const text = response.text || '[]';
+      let results = [];
+      try {
+        // Try to parse the text, if it's not an array, try to find an array inside it
+        const parsed = JSON.parse(text);
+        results = Array.isArray(parsed) ? parsed : (parsed.findings || parsed.results || []);
+      } catch (e) {
+        console.error("Failed to parse Gemini response as JSON:", text);
+      }
+
+      res.json(results);
     } catch (error) {
       console.error("Social scan error:", error);
       res.status(500).json({ error: "Social media scan failed." });

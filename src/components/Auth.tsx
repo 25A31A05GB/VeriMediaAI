@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Shield, Mail, Lock, User, Loader2, ArrowRight } from 'lucide-react';
+import { Shield, Mail, Lock, User, Loader2, ArrowRight, Twitter, Instagram, Facebook } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
+import { toast } from 'sonner';
 
 interface AuthProps {
   type: 'login' | 'signup';
@@ -13,6 +14,27 @@ interface AuthProps {
 export const Auth: React.FC<AuthProps> = ({ type, onSuccess, onSwitch, onBack }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '', name: '' });
+
+  const handleSocialLogin = async (platform: string) => {
+    try {
+      const response = await fetch(`/api/auth/social/url/${platform}?mode=login`);
+      const { url } = await response.json();
+      
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      
+      window.open(
+        url,
+        `login_${platform}`,
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+    } catch (error) {
+      console.error('Social login error:', error);
+      toast.error('Failed to initiate social login.');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +74,34 @@ export const Auth: React.FC<AuthProps> = ({ type, onSuccess, onSwitch, onBack })
                 ? 'Enter your credentials to access the War Room.' 
                 : 'Join the elite network protecting digital authenticity.'}
             </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { id: 'twitter', icon: Twitter, color: 'hover:text-blue hover:bg-blue/10' },
+              { id: 'instagram', icon: Instagram, color: 'hover:text-pink-500 hover:bg-pink-500/10' },
+              { id: 'facebook', icon: Facebook, color: 'hover:text-blue-600 hover:bg-blue-600/10' }
+            ].map((social) => (
+              <button
+                key={social.id}
+                onClick={() => handleSocialLogin(social.id)}
+                className={cn(
+                  "flex items-center justify-center p-4 rounded-xl bg-white/5 border border-white/5 transition-all text-slate-400",
+                  social.color
+                )}
+              >
+                <social.icon className="w-5 h-5" />
+              </button>
+            ))}
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/5"></div>
+            </div>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-mono">
+              <span className="bg-[#050505] px-4 text-slate-600">Or continue with email</span>
+            </div>
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
