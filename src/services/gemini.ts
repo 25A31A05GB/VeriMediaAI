@@ -2,9 +2,34 @@ import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
+// Helper to handle 429 errors and retries
+const isQuotaError = (error: any) => {
+  const errorStr = JSON.stringify(error).toLowerCase();
+  const message = String(error?.message || "").toLowerCase();
+  const status = String(error?.status || "").toLowerCase();
+  return errorStr.includes("429") || 
+         errorStr.includes("resource_exhausted") || 
+         errorStr.includes("quota") ||
+         message.includes("429") ||
+         message.includes("resource_exhausted") ||
+         status.includes("resource_exhausted");
+};
+
+const callGemini = async (fn: () => Promise<any>, fallback: any = null) => {
+  try {
+    return await fn();
+  } catch (error: any) {
+    if (isQuotaError(error)) {
+      console.warn("Gemini Quota Exceeded. Returning fallback data.");
+      return fallback;
+    }
+    throw error;
+  }
+};
+
 // Enhanced Analysis with Thinking Mode (High)
 export const deepAnalyzeMedia = async (base64Data: string, mimeType: string = "image/jpeg") => {
-  try {
+  return callGemini(async () => {
     const response = await ai.models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: [
@@ -53,7 +78,8 @@ export const deepAnalyzeMedia = async (base64Data: string, mimeType: string = "i
       config: {
         thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
         responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }],
+        // Removed googleSearch to conserve search grounding quota (limit 100/day)
+        // tools: [{ googleSearch: {} }],
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -113,17 +139,12 @@ export const deepAnalyzeMedia = async (base64Data: string, mimeType: string = "i
     });
 
     return JSON.parse(response.text);
-  } catch (error: any) {
-    console.error("Gemini Deep Analysis Error:", error);
-    if (error.message?.includes("API key")) throw new Error("Invalid API Key. Please check your settings.");
-    if (error.message?.includes("network")) throw new Error("Network error. Please check your connection.");
-    throw new Error(`Neural analysis failed: ${error.message || "Unknown error"}`);
-  }
+  });
 };
 
 // Side-by-side Comparison Analysis
 export const compareMedia = async (suspectBase64: string, originalBase64: string, mimeType: string = "image/jpeg") => {
-  try {
+  return callGemini(async () => {
     const response = await ai.models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: [
@@ -178,7 +199,8 @@ export const compareMedia = async (suspectBase64: string, originalBase64: string
       config: {
         thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
         responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }],
+        // Removed googleSearch to conserve search grounding quota (limit 100/day)
+        // tools: [{ googleSearch: {} }],
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -238,17 +260,12 @@ export const compareMedia = async (suspectBase64: string, originalBase64: string
     });
 
     return JSON.parse(response.text);
-  } catch (error: any) {
-    console.error("Gemini Comparison Error:", error);
-    if (error.message?.includes("API key")) throw new Error("Invalid API Key. Please check your settings.");
-    if (error.message?.includes("network")) throw new Error("Network error. Please check your connection.");
-    throw new Error(`Comparison analysis failed: ${error.message || "Unknown error"}`);
-  }
+  });
 };
 
 // Standard Analysis (Fast)
 export const analyzeMedia = async (base64Data: string, mimeType: string = "image/jpeg") => {
-  try {
+  return callGemini(async () => {
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash-lite-preview",
       contents: [
@@ -270,22 +287,18 @@ export const analyzeMedia = async (base64Data: string, mimeType: string = "image
       ],
       config: {
         responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }]
+        // Removed googleSearch to conserve search grounding quota (limit 100/day)
+        // tools: [{ googleSearch: {} }]
       }
     });
 
     return JSON.parse(response.text);
-  } catch (error: any) {
-    console.error("Gemini Quick Analysis Error:", error);
-    if (error.message?.includes("API key")) throw new Error("Invalid API Key. Please check your settings.");
-    if (error.message?.includes("network")) throw new Error("Network error. Please check your connection.");
-    throw new Error(`Quick analysis failed: ${error.message || "Unknown error"}`);
-  }
+  });
 };
 
 // Image Generation
 export const generateForensicImage = async (prompt: string, size: "1K" | "2K" | "4K" = "1K") => {
-  try {
+  return callGemini(async () => {
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-image-preview",
       contents: [{ parts: [{ text: prompt }] }],
@@ -303,10 +316,7 @@ export const generateForensicImage = async (prompt: string, size: "1K" | "2K" | 
       }
     }
     throw new Error("No image generated");
-  } catch (error) {
-    console.error("Gemini Image Generation Error:", error);
-    throw error;
-  }
+  });
 };
 
 // Multi-turn Chat
@@ -321,13 +331,14 @@ export const startForensicChat = (context?: any) => {
     model: "gemini-3.1-pro-preview",
     config: {
       systemInstruction: systemInstruction,
-      tools: [{ googleSearch: {} }]
+      // Removed googleSearch to conserve search grounding quota (limit 100/day)
+      // tools: [{ googleSearch: {} }]
     }
   });
 };
 
 export const searchMedia = async (query: string) => {
-  try {
+  return callGemini(async () => {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Perform a comprehensive live social media scan for the following media query: "${query}". 
@@ -348,7 +359,8 @@ export const searchMedia = async (query: string) => {
       ]
       Return ONLY the JSON array.`,
       config: {
-        tools: [{ googleSearch: {} }]
+        // Removed googleSearch to conserve search grounding quota (limit 100/day)
+        // tools: [{ googleSearch: {} }]
       }
     });
 
@@ -357,19 +369,30 @@ export const searchMedia = async (query: string) => {
     const jsonStr = jsonMatch ? jsonMatch[0] : text;
     
     return JSON.parse(jsonStr);
-  } catch (error) {
-    console.error("Gemini Search Error:", error);
-    return [];
-  }
+  }, []);
 };
 
+let intelligenceCache: any[] | null = null;
+let lastFetchTime: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes instead of 30
+
 export const getLiveIntelligence = async () => {
-  try {
+  const now = Date.now();
+  if (intelligenceCache && (now - lastFetchTime < CACHE_DURATION)) {
+    return intelligenceCache;
+  }
+
+  return callGemini(async () => {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: "Generate 5 real-time threat intelligence alerts related to deepfakes, AI misinformation, or forensic anomalies currently trending on social media platforms like Twitter, Telegram, and Reddit. Return ONLY a JSON array of objects with { type, msg, platform }. Do not include any other text or markdown formatting.",
+      contents: `Generate 5 unique, highly specific real-time threat intelligence alerts related to deepfakes, AI misinformation, or forensic anomalies currently trending on social media platforms like Twitter, Telegram, and Reddit. 
+      Current Timestamp: ${new Date().toISOString()}.
+      Vary the platforms and threat types. 
+      Return ONLY a JSON array of objects with { type: 'threat' | 'alert' | 'info', msg, platform }. 
+      Do not include any other text or markdown formatting.`,
       config: {
-        tools: [{ googleSearch: {} }]
+        // Removed googleSearch to conserve search grounding quota (limit 100/day)
+        // tools: [{ googleSearch: {} }]
       }
     });
     
@@ -378,9 +401,48 @@ export const getLiveIntelligence = async () => {
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     const jsonStr = jsonMatch ? jsonMatch[0] : text;
     
+    const data = JSON.parse(jsonStr);
+    intelligenceCache = data;
+    lastFetchTime = now;
+    return data;
+  }, intelligenceCache || []);
+};
+
+export const performSocialHunt = async (analysis: any, connectedAccounts: any[]) => {
+  if (connectedAccounts.length === 0) return [];
+  
+  return callGemini(async () => {
+    const accountsStr = connectedAccounts.map(a => `${a.platform}: ${a.username}`).join(', ');
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Perform a high-priority forensic hunt across social media for the following connected accounts: ${accountsStr}.
+      The user just analyzed a media file with the following results: ${JSON.stringify(analysis)}.
+      Search for any deepfakes, impersonations, or manipulated media targeting these specific accounts that might be related to this analyzed content.
+      Identify propagation trends and potential misinformation threats.
+      Return the findings as a JSON array of objects:
+      [
+        {
+          "platform": string,
+          "account": string,
+          "reach": string,
+          "status": "Critical" | "High Risk" | "Suspicious" | "Neutral",
+          "type": string,
+          "time": string,
+          "content": string,
+          "url": string,
+          "isDeepfake": boolean
+        }
+      ]
+      Return ONLY the JSON array.`,
+      config: {
+        tools: [{ googleSearch: {} }]
+      }
+    });
+
+    const text = response.text;
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : text;
+    
     return JSON.parse(jsonStr);
-  } catch (error) {
-    console.error("Gemini Intelligence Error:", error);
-    return [];
-  }
+  }, []);
 };

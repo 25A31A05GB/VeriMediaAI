@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Toaster, toast } from 'sonner';
 import { AnimatePresence, motion } from 'motion/react';
 import { Landing } from './components/Landing';
@@ -6,80 +6,116 @@ import { Dashboard } from './components/Dashboard';
 import { Forensics } from './components/Forensics';
 import { Payment } from './components/Payment';
 import { Auth } from './components/Auth';
-import { analyzeMedia, deepAnalyzeMedia, compareMedia } from './services/gemini';
+import { WarRoom } from './frontend/components/WarRoom';
+import imageCompression from 'browser-image-compression';
 
-type View = 'landing' | 'login' | 'signup' | 'dashboard' | 'forensics' | 'payment';
+type View = 'landing' | 'login' | 'signup' | 'dashboard' | 'forensics' | 'payment' | 'war-room';
 
 export default function App() {
   const [view, setView] = useState<View>('landing');
   const [user, setUser] = useState<any>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [pendingPlan, setPendingPlan] = useState<{ plan: string, price: string } | null>(null);
 
-  React.useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'SOCIAL_AUTH_SUCCESS' && event.data?.mode === 'login') {
-        const { user } = event.data;
-        setUser(user);
-        if (pendingPlan) setView('payment');
-        else setView('dashboard');
-        toast.success(`Welcome back, ${user.name}!`);
+  useEffect(() => {
+    const token = localStorage.getItem('verimedia_token');
+    const savedUser = localStorage.getItem('verimedia_user');
+    if (token && savedUser) {
+      setUser(JSON.parse(savedUser));
+      if (view === 'landing' || view === 'login' || view === 'signup') {
+        setView('dashboard');
       }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [pendingPlan]);
+    }
+    setIsAuthReady(true);
+  }, []);
 
   const handleAnalyze = async (file: File, deep: boolean = false, originalFile?: File) => {
-    const readFile = (f: File): Promise<string> => new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.readAsDataURL(f);
-    });
-
     try {
-      const suspectBase64 = await readFile(file);
-      setSelectedImage(suspectBase64);
       setLoading(true);
-      setUploadProgress(0);
+      setUploadProgress(10);
 
-      const interval = setInterval(() => {
-        setUploadProgress(prev => (prev >= 95 ? 95 : prev + 5));
-      }, 200);
+      // 1. Media Pipeline Improvement: Image Compression
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        onProgress: (p: number) => setUploadProgress(10 + (p * 0.4))
+      };
+      
+      const compressedFile = await imageCompression(file, options);
+      setUploadProgress(50);
 
-      try {
-        let data;
-        if (originalFile) {
-          const originalBase64 = await readFile(originalFile);
-          data = await compareMedia(suspectBase64, originalBase64, file.type);
-        } else {
-          data = deep ? await deepAnalyzeMedia(suspectBase64, file.type) : await analyzeMedia(suspectBase64, file.type);
-        }
-        
-        setUploadProgress(100);
-        setAnalysis(data);
-        setView('forensics');
-      } catch (err: any) {
-        console.error('Analysis Error:', err);
-        const errorMessage = err?.message || 'Unknown forensic analysis error';
-        toast.error(`Forensic analysis failed: ${errorMessage}`, {
-          description: 'Please check your API key or network connection and try again.',
-          duration: 5000
-        });
-      } finally {
-        setLoading(false);
-        clearInterval(interval);
+      const readFile = (f: File | Blob): Promise<string> => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(f);
+      });
+
+      const suspectBase64 = await readFile(compressedFile);
+      setSelectedImage(suspectBase64);
+      
+      let originalBase64 = undefined;
+      if (originalFile) {
+        const compressedOriginal = await imageCompression(originalFile, options);
+        originalBase64 = await readFile(compressedOriginal);
       }
-    } catch (err) {
-      toast.error("Failed to read file. Please try again.");
+
+      setUploadProgress(70);
+
+      // 2. Real API Call to Backend
+      const response = await fetch('/api/forensics/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('verimedia_token')}`
+        },
+        body: JSON.stringify({
+          image: suspectBase64,
+          originalImage: originalBase64,
+          metadata: {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified
+          }
+        })
+      });
+
+      if (!response.ok) throw new Error(await response.text());
+
+      const data = await response.json();
+      setUploadProgress(100);
+      setAnalysis(data);
+      setView('forensics');
+      
+      toast.success("Forensic analysis complete", {
+        description: `Neural mesh identified ${data.verdict} with ${data.confidence}% confidence.`
+      });
+
+    } catch (err: any) {
+      console.error('Analysis Error:', err);
+      toast.error(`Forensic analysis failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setUploadProgress(0), 1000);
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('verimedia_token');
+    localStorage.removeItem('verimedia_user');
+    setUser(null);
+    setView('landing');
+  };
+
+  if (!isAuthReady) return null;
+
   return (
-    <div className="min-h-screen bg-bg text-text selection:bg-blue/30">
+    <div className="min-h-screen bg-bg text-text selection:bg-blue/30 overflow-x-hidden">
       <Toaster position="top-center" theme="dark" richColors />
       
       <AnimatePresence mode="wait">
@@ -101,8 +137,10 @@ export default function App() {
               type={view}
               onBack={() => setView('landing')}
               onSwitch={() => setView(view === 'login' ? 'signup' : 'login')}
-              onSuccess={(u) => {
+              onSuccess={(u, token) => {
                 setUser(u);
+                localStorage.setItem('verimedia_user', JSON.stringify(u));
+                localStorage.setItem('verimedia_token', token);
                 if (pendingPlan) setView('payment');
                 else setView('dashboard');
               }}
@@ -132,16 +170,16 @@ export default function App() {
               uploadProgress={uploadProgress}
               analysis={analysis}
               selectedImage={selectedImage}
-              onLogout={() => {
-                setUser(null);
-                setView('landing');
-              }}
+              onLogout={handleLogout}
               onAnalyze={handleAnalyze}
-              onViewCase={(id) => {
-                // Mock viewing a case
-                toast.info(`Loading Case ${id}`);
-              }}
+              onWarRoom={() => setView('war-room')}
             />
+          </motion.div>
+        )}
+
+        {view === 'war-room' && (
+          <motion.div key="war-room" initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}>
+            <WarRoom onBack={() => setView('dashboard')} />
           </motion.div>
         )}
 

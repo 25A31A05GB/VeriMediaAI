@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Footer } from './Footer';
 import { Shield, Zap, Scan, Globe, Lock, ChevronRight, CheckCircle2, Check, X, Play, ArrowRight, Mail, Star, Activity, History, FileText, Cpu, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -90,7 +91,7 @@ export const Landing: React.FC<LandingProps> = ({ onGetAccess, onLogin }) => {
       </div>
 
       {/* Hero */}
-      <section className="relative pt-24 pb-32 px-6 overflow-hidden">
+      <section id="about" className="relative pt-24 pb-32 px-6 overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(0,180,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,180,255,0.05)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]" />
         <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-8">
@@ -105,19 +106,18 @@ export const Landing: React.FC<LandingProps> = ({ onGetAccess, onLogin }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-7xl md:text-8xl font-black tracking-tighter leading-[0.85] uppercase italic"
+              className="text-7xl md:text-9xl font-black tracking-tighter leading-[0.85] uppercase italic"
             >
-              <span className="text-blue">VeriMedia</span><br />
-              <span className="text-slate-500">AI</span><br />
-              <span className="text-3xl md:text-5xl text-purple tracking-normal normal-case font-bold block mt-4 italic">Digital Asset War Room</span>
+              Detect. Track. <br />
+              <span className="text-blue">Neutralize.</span>
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-slate-400 text-lg max-w-xl leading-relaxed"
+              className="text-slate-400 text-lg md:text-xl max-w-2xl leading-relaxed"
             >
-              The most advanced AI image forensics platform ever built. Triple perceptual hash consensus, SSIM, MobileNet neural embeddings, and real Bing web search.
+              VeriMedia AI is the world's first proactive forensic mesh that detects, tracks, and neutralizes digital media threats in real-time — protecting your brand before the spread.
             </motion.p>
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -212,27 +212,23 @@ export const Landing: React.FC<LandingProps> = ({ onGetAccess, onLogin }) => {
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
           <div className="space-y-8">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple/10 border border-purple/20 text-purple text-[10px] font-mono uppercase tracking-widest">
-              Product Demo
+              Scalable Infrastructure
             </span>
             <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-none">
-              Watch it<br /><span className="text-blue">Live.</span>
+              Built for<br /><span className="text-blue">Scale.</span>
             </h2>
             <p className="text-slate-400 text-lg leading-relaxed">
-              See VeriMedia AI detect a modified sports image in under 60 seconds — from upload to full forensic report, heatmap, and DMCA notice.
+              Built on a scalable cloud-native architecture with a modular AI pipeline, VeriMedia AI handles millions of assets across hundreds of platforms simultaneously. Our neural mesh expands dynamically to meet the demands of global sports leagues and media conglomerates.
             </p>
-            <div className="space-y-4">
-              {[
-                { n: 1, t: 'Upload original + suspected image' },
-                { n: 2, t: 'AI runs 6 forensic algorithms simultaneously' },
-                { n: 3, t: 'Heatmap shows exact edited regions' },
-                { n: 4, t: 'Bing finds live web copies, risk scored' },
-                { n: 5, t: 'DMCA notice generated and ready to send' }
-              ].map((s) => (
-                <div key={s.n} className="flex items-center gap-4 text-slate-400">
-                  <div className="w-8 h-8 rounded-full bg-blue/10 border border-blue/20 flex items-center justify-center text-blue text-xs font-bold">{s.n}</div>
-                  <span className="text-sm">{s.t}</span>
-                </div>
-              ))}
+            <div className="grid grid-cols-2 gap-8 pt-4">
+              <div className="space-y-2">
+                <div className="text-3xl font-black text-blue tracking-tighter">1.2M+</div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500">Assets Scanned/Day</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl font-black text-blue tracking-tighter">340+</div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500">Platforms Monitored</div>
+              </div>
             </div>
             <div className="flex gap-4">
               <button 
@@ -341,6 +337,98 @@ export const Landing: React.FC<LandingProps> = ({ onGetAccess, onLogin }) => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Proactive Intelligence Section */}
+      <section className="py-32 bg-bg border-t border-white/5 relative overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue/10 blur-[120px] rounded-full" />
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+            <div className="relative order-2 lg:order-1">
+              <div className="relative bg-s1 border border-white/10 p-8 rounded-3xl shadow-2xl overflow-hidden group">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue via-purple to-red" />
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue/10 flex items-center justify-center border border-blue/20">
+                      <Activity className="w-5 h-5 text-blue" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500">Live Prediction</div>
+                      <div className="text-sm font-bold text-white italic uppercase tracking-tighter">Propagation Risk</div>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black text-red tracking-tighter italic">89%</div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-mono uppercase tracking-widest text-slate-400">
+                      <span>Viral Velocity</span>
+                      <span>High</span>
+                    </div>
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        whileInView={{ width: '85%' }}
+                        transition={{ duration: 1.5 }}
+                        className="h-full bg-red shadow-[0_0_15px_rgba(255,68,68,0.5)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-3">
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-blue">Neural Prediction Engine</div>
+                    <p className="text-xs text-slate-400 leading-relaxed italic">
+                      "High probability of cross-platform spread detected. Pattern matches known botnet propagation signatures. Automated DMCA pre-filing recommended."
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <div key={i} className="flex-1 h-1 bg-blue/20 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          whileInView={{ width: '100%' }}
+                          transition={{ delay: i * 0.1 }}
+                          className="h-full bg-blue"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-8 order-1 lg:order-2">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue/10 border border-blue/20 text-blue text-[10px] font-mono uppercase tracking-widest">
+                Proactive Intelligence
+              </span>
+              <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-none">
+                Predict Risk <br /><span className="text-blue">Before</span> Spread.
+              </h2>
+              <p className="text-slate-400 text-lg leading-relaxed">
+                VeriMedia AI doesn't just react to uploads. Our Neural Prediction Engine identifies high-risk assets the moment they appear, calculating viral velocity and target platforms to enable pre-emptive action.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  { t: 'Predictive Risk Scoring', d: 'Identify threats before they go viral.' },
+                  { t: 'Automated DMCA Pre-Filing', d: 'Stop propagation at the source.' },
+                  { t: 'Real-Time Propagation Alerts', d: 'Instant notifications across 340+ nodes.' }
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-4">
+                    <div className="w-6 h-6 rounded-full bg-blue/10 border border-blue/20 flex items-center justify-center shrink-0 mt-1">
+                      <Check className="w-3 h-3 text-blue" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-white uppercase tracking-tight italic">{item.t}</div>
+                      <div className="text-xs text-slate-500">{item.d}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Pricing */}
       <section id="pricing" className="py-32 bg-s1/30 border-t border-white/5">
@@ -591,55 +679,7 @@ export const Landing: React.FC<LandingProps> = ({ onGetAccess, onLogin }) => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-20 bg-bg border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
-            <div className="col-span-1 md:col-span-2 space-y-6">
-              <div className="flex items-center gap-2">
-                <Shield className="w-8 h-8 text-blue" />
-                <span className="font-bold text-2xl tracking-tighter uppercase italic">
-                  VeriMedia <span className="text-blue">AI</span>
-                </span>
-              </div>
-              <p className="text-slate-500 max-w-sm leading-relaxed">
-                The world's leading digital asset war room. Providing enterprise-grade forensic analysis and real-time threat intelligence for the modern web.
-              </p>
-              <div className="flex gap-4">
-                {['Twitter', 'LinkedIn', 'GitHub', 'Discord'].map(social => (
-                  <a key={social} href="#" className="text-xs font-mono uppercase tracking-widest text-slate-500 hover:text-blue transition-colors">{social}</a>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-white mb-6">Platform</h4>
-              <ul className="space-y-4">
-                {['Features', 'Forensics', 'Neural Engine', 'Web Search', 'API Access'].map(item => (
-                  <li key={item}><a href="#" className="text-sm text-slate-500 hover:text-blue transition-colors">{item}</a></li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-white mb-6">Company</h4>
-              <ul className="space-y-4">
-                {['About Us', 'Waitlist', 'Pricing', 'Legal', 'Contact'].map(item => (
-                  <li key={item}><a href="#" className="text-sm text-slate-500 hover:text-blue transition-colors">{item}</a></li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">
-              © 2026 VeriMedia AI Federation. All Rights Reserved.
-            </div>
-            <div className="flex gap-8">
-              <a href="#" className="text-[10px] font-mono text-slate-600 uppercase tracking-widest hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="text-[10px] font-mono text-slate-600 uppercase tracking-widest hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="text-[10px] font-mono text-slate-600 uppercase tracking-widest hover:text-white transition-colors">Cookie Policy</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

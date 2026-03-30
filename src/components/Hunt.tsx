@@ -10,18 +10,23 @@ import {
   MessageCircle,
   ExternalLink,
   Loader2,
-  Scan
+  Scan,
+  ShieldCheck,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { toast } from 'sonner';
 
 import { searchMedia } from '../services/gemini';
 
 interface HuntProps {
   analysis?: any;
+  onAnalyze?: (file: File, deep?: boolean) => void;
 }
 
-export const Hunt: React.FC<HuntProps> = ({ analysis }) => {
+export const Hunt: React.FC<HuntProps> = ({ analysis, onAnalyze }) => {
   const [query, setQuery] = useState(analysis?.verdict ? `Deepfake analysis for ${analysis.verdict}` : '');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<any[]>([]);
@@ -56,22 +61,43 @@ export const Hunt: React.FC<HuntProps> = ({ analysis }) => {
       </div>
 
       <div className="glass p-8 rounded-[2rem] border-white/10 space-y-6">
-        <form onSubmit={handleSearch} className="relative group">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-500 group-focus-within:text-blue transition-colors" />
-          <input 
-            className="w-full bg-s2 border border-white/10 rounded-2xl py-5 pl-16 pr-32 text-lg outline-none focus:border-blue/50 transition-all font-medium placeholder:text-slate-600"
-            placeholder="Enter Asset Hash, URL, or Keywords..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <button 
-            type="submit"
-            disabled={searching}
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue text-black px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue/90 transition-all disabled:opacity-50"
-          >
-            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Initialize Hunt'}
-          </button>
-        </form>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <form onSubmit={handleSearch} className="md:col-span-3 relative group">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-500 group-focus-within:text-blue transition-colors" />
+            <input 
+              className="w-full bg-s2 border border-white/10 rounded-2xl py-5 pl-16 pr-32 text-lg outline-none focus:border-blue/50 transition-all font-medium placeholder:text-slate-600"
+              placeholder="Enter Asset Hash, URL, or Keywords..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <button 
+              type="submit"
+              disabled={searching}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue text-black px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue/90 transition-all disabled:opacity-50"
+            >
+              {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Initialize Hunt'}
+            </button>
+          </form>
+
+          <div className="relative group">
+            <input 
+              type="file" 
+              accept="image/*,video/*"
+              className="absolute inset-0 opacity-0 cursor-pointer z-20" 
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file && onAnalyze) {
+                  onAnalyze(file, true);
+                  toast.info("Image uploaded. Initiating deep forensic hunt...");
+                }
+              }}
+            />
+            <div className="w-full h-full bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 group-hover:border-blue/50 transition-all py-5">
+              <Upload className="w-5 h-5 text-blue" />
+              <span className="text-[10px] font-black uppercase tracking-widest italic">Upload Asset</span>
+            </div>
+          </div>
+        </div>
 
         <div className="flex flex-wrap gap-4">
           {['Twitter', 'Instagram', 'Telegram', 'Reddit', 'TikTok', 'Facebook'].map((p) => (
@@ -167,6 +193,24 @@ export const Hunt: React.FC<HuntProps> = ({ analysis }) => {
         </div>
 
         <div className="space-y-6">
+          <div className="glass p-8 rounded-[2rem] border-white/10 space-y-6 bg-gradient-to-br from-blue/5 to-purple/5">
+            <h3 className="text-lg font-black uppercase tracking-tighter italic flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-blue" /> Identity Protection
+            </h3>
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest leading-relaxed">
+              Connect your social accounts to enable automated deepfake monitoring and impersonation alerts.
+            </p>
+            <button 
+              onClick={() => {
+                const tab = document.querySelector('[data-tab="social"]');
+                if (tab) (tab as HTMLElement).click();
+              }}
+              className="w-full py-3 rounded-xl bg-blue/10 border border-blue/20 text-blue font-black text-[10px] uppercase tracking-widest hover:bg-blue/20 transition-all"
+            >
+              Connect Accounts
+            </button>
+          </div>
+
           <div className="glass p-8 rounded-[2rem] border-white/10 space-y-6">
             <h3 className="text-lg font-black uppercase tracking-tighter italic flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-red" /> Active Threats

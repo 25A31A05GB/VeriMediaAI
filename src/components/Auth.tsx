@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 interface AuthProps {
   type: 'login' | 'signup';
-  onSuccess: (user: any) => void;
+  onSuccess: (user: any, token: string) => void;
   onSwitch: () => void;
   onBack: () => void;
 }
@@ -17,7 +17,7 @@ export const Auth: React.FC<AuthProps> = ({ type, onSuccess, onSwitch, onBack })
 
   const handleSocialLogin = async (platform: string) => {
     try {
-      const response = await fetch(`/api/auth/social/url/${platform}?mode=login`);
+      const response = await fetch(`/api/social/auth/social/url/${platform}?mode=login&mock=true`);
       const { url } = await response.json();
       
       const width = 600;
@@ -40,14 +40,26 @@ export const Auth: React.FC<AuthProps> = ({ type, onSuccess, onSwitch, onBack })
     e.preventDefault();
     setLoading(true);
     
-    // Simulate real auth delay
-    await new Promise(r => setTimeout(r, 1200));
-    
-    onSuccess({ 
-      name: formData.name || formData.email.split('@')[0], 
-      email: formData.email 
-    });
-    setLoading(false);
+    try {
+      const endpoint = type === 'login' ? '/api/auth/login' : '/api/auth/signup';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || 'Authentication failed');
+
+      toast.success(type === 'login' ? 'Welcome back!' : 'Account created successfully!');
+      onSuccess(data.user, data.token);
+    } catch (error: any) {
+      console.error('Auth Error:', error);
+      toast.error(error.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

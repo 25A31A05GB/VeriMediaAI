@@ -235,9 +235,9 @@ export const DeepfakeDetection: React.FC<DeepfakeDetectionProps> = ({ analysis, 
                   </div>
                   <div className={cn(
                     "px-2 py-0.5 rounded text-[8px] font-mono uppercase tracking-widest",
-                    val.toLowerCase().includes('critical') || val.toLowerCase().includes('detected') ? "bg-red/10 text-red" : "bg-blue/10 text-blue"
+                    String(val || "").toLowerCase().includes('critical') || String(val || "").toLowerCase().includes('detected') ? "bg-red/10 text-red" : "bg-blue/10 text-blue"
                   )}>
-                    {val.toLowerCase().includes('critical') ? 'Alert' : 'Stable'}
+                    {String(val || "").toLowerCase().includes('critical') ? 'Alert' : 'Stable'}
                   </div>
                 </div>
               ))}

@@ -47,6 +47,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
+import { Footer } from './Footer';
 import { Hunt } from './Hunt';
 import { ConfidenceEngine } from './ConfidenceEngine';
 import { ExplainableAI } from './ExplainableAI';
@@ -68,6 +69,7 @@ import { ForensicAssistant } from './ForensicAssistant';
 import { AssetGenerator } from './AssetGenerator';
 import { SocialGuard } from './SocialGuard';
 import { Settings } from './Settings';
+import { ScanHistory } from './ScanHistory';
 
 import { 
   AreaChart, 
@@ -139,10 +141,10 @@ const MobileBottomNav: React.FC<{ activeTab: string; setActiveTab: (id: string) 
 
 const LiveActivityFeed: React.FC<{ isOpen: boolean; setIsOpen: (open: boolean) => void; analysis?: any; notifications: any[] }> = ({ isOpen, setIsOpen, analysis, notifications }) => {
   const [activities, setActivities] = useState([
-    { id: 1, type: 'Deepfake', status: 'High Risk', target: 'video_01.mp4', time: '2m ago', color: 'text-red' },
-    { id: 2, type: 'Edited', status: 'Modified', target: 'img_992.jpg', time: '5m ago', color: 'text-orange' },
-    { id: 3, type: 'Cropped', status: 'Suspicious', target: 'profile_shot.png', time: '12m ago', color: 'text-yellow' },
-    { id: 4, type: 'Context Change', status: 'Alert', target: 'news_clip.mp4', time: '15m ago', color: 'text-blue' },
+    { id: 1, type: 'Neural Scan', status: 'Active', target: 'Global Mesh', time: '1m ago', color: 'text-blue' },
+    { id: 2, type: 'Deepfake', status: 'High Risk', target: 'video_01.mp4', time: '2m ago', color: 'text-red' },
+    { id: 3, type: 'Edited', status: 'Modified', target: 'img_992.jpg', time: '5m ago', color: 'text-orange' },
+    { id: 4, type: 'Cropped', status: 'Suspicious', target: 'profile_shot.png', time: '12m ago', color: 'text-yellow' },
   ]);
 
   useEffect(() => {
@@ -153,7 +155,7 @@ const LiveActivityFeed: React.FC<{ isOpen: boolean; setIsOpen: (open: boolean) =
         status: n.msg || 'Alert',
         target: 'Global Scan',
         time: n.time || 'Just now',
-        color: n.msg?.toLowerCase().includes('critical') ? 'text-red' : 'text-blue'
+        color: String(n.msg || "").toLowerCase().includes('critical') ? 'text-red' : 'text-blue'
       }));
       setActivities(prev => [...mapped, ...prev].slice(0, 8));
     }
@@ -218,13 +220,22 @@ interface DashboardProps {
   onLogout: () => void;
   onAnalyze: (file: File, deep?: boolean, originalFile?: File) => void;
   onViewCase: (id: string) => void;
+  onWarRoom: () => void;
   loading: boolean;
   uploadProgress: number;
   analysis: any;
   selectedImage: string | null;
 }
 
-const SystemOverview: React.FC<{ title: string; onAction: () => void }> = ({ title, onAction }) => {
+const SystemOverview: React.FC<{ 
+  title: string; 
+  onAction: () => void; 
+  onSocialAction: (platform?: string, accountId?: string) => void;
+  recentScans: any[];
+}> = ({ title, onAction, onSocialAction, recentScans }) => {
+  const [manualPlatform, setManualPlatform] = useState('twitter');
+  const [manualAccountId, setManualAccountId] = useState('');
+  
   const chartData = [
     { time: '00:00', threats: 12, activity: 45 },
     { time: '04:00', threats: 18, activity: 52 },
@@ -273,6 +284,26 @@ const SystemOverview: React.FC<{ title: string; onAction: () => void }> = ({ tit
               </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-1">
+              <div className="text-[8px] font-mono uppercase tracking-widest text-slate-500">Avg. Detection Time</div>
+              <div className="text-xl font-black text-blue tracking-tighter italic">0.42s</div>
+            </div>
+            <div className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-1">
+              <div className="text-[8px] font-mono uppercase tracking-widest text-slate-500">Proactive Risk Score</div>
+              <div className="text-xl font-black text-red tracking-tighter italic">89%</div>
+            </div>
+            <div className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-1">
+              <div className="text-[8px] font-mono uppercase tracking-widest text-slate-500">Active Nodes</div>
+              <div className="text-xl font-black text-white tracking-tighter italic">342</div>
+            </div>
+            <div className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-1">
+              <div className="text-[8px] font-mono uppercase tracking-widest text-slate-500">Threats Neutralized</div>
+              <div className="text-xl font-black text-green tracking-tighter italic">12.4k</div>
+            </div>
+          </div>
+
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
@@ -365,6 +396,144 @@ const SystemOverview: React.FC<{ title: string; onAction: () => void }> = ({ tit
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Recent Forensic Findings */}
+      {recentScans.length > 0 && (
+        <div className="glass p-8 rounded-2xl border-white/10 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-mono uppercase tracking-widest text-slate-500">Recent Forensic Findings</h3>
+            <button 
+              onClick={() => onSocialAction()}
+              className="text-[10px] font-mono text-blue uppercase tracking-widest hover:underline"
+            >
+              View All Findings →
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentScans.map((scan, i) => (
+              <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-3 hover:border-blue/30 transition-all cursor-pointer group" onClick={() => onSocialAction(scan.platform, scan.accountId)}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {scan.platform === 'twitter' ? <Twitter className="w-3 h-3 text-blue" /> : 
+                     scan.platform === 'instagram' ? <Instagram className="w-3 h-3 text-pink-500" /> : 
+                     <Facebook className="w-3 h-3 text-blue-600" />}
+                    <span className="text-[10px] font-mono text-white uppercase tracking-widest">{scan.accountId}</span>
+                  </div>
+                  <span className="text-[8px] font-mono text-slate-500">{new Date(scan.timestamp).toLocaleDateString()}</span>
+                </div>
+                <div className="space-y-1">
+                  {scan.results?.slice(0, 1).map((res: any, j: number) => (
+                    <div key={j} className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-300 truncate max-w-[150px]">{res.type}</span>
+                      <span className={cn(
+                        "text-[9px] font-mono px-2 py-0.5 rounded uppercase tracking-tighter",
+                        res.status === 'Critical' ? 'bg-red/20 text-red' : 
+                        res.status === 'High Risk' ? 'bg-orange/20 text-orange' : 
+                        'bg-blue/20 text-blue'
+                      )}>
+                        {res.status}
+                      </span>
+                    </div>
+                  ))}
+                  {(!scan.results || scan.results.length === 0) && (
+                    <div className="text-[10px] font-mono text-green uppercase tracking-widest">No Risks Detected</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Social Protection Quick Action */}
+      <div className="glass p-8 rounded-2xl border-white/10 bg-gradient-to-br from-blue/10 via-transparent to-transparent relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <ShieldCheck className="w-32 h-32 text-blue" />
+        </div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue/10 border border-blue/20 text-blue text-[10px] font-mono uppercase tracking-widest">
+              Identity Protection
+            </div>
+            <h3 className="text-3xl font-black tracking-tighter uppercase italic">Secure Your Social Mesh</h3>
+            <p className="text-slate-400 text-sm max-w-xl">
+              Connect your Instagram, Twitter, and Facebook accounts to enable real-time deepfake monitoring. 
+              Our neural engine scans for impersonations and manipulated media targeting your profile.
+            </p>
+          </div>
+          <div className="flex flex-col gap-4 w-full md:w-auto">
+            <div className="flex flex-col gap-3 bg-black/20 p-4 rounded-xl border border-white/5">
+              <div className="flex gap-2">
+                <select 
+                  value={manualPlatform}
+                  onChange={(e) => setManualPlatform(e.target.value)}
+                  className="bg-bg border border-white/10 rounded px-3 py-2 text-[10px] font-mono uppercase tracking-widest outline-none focus:border-blue transition-colors"
+                >
+                  <option value="twitter">Twitter</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="facebook">Facebook</option>
+                </select>
+                <input 
+                  type="text"
+                  value={manualAccountId}
+                  onChange={(e) => setManualAccountId(e.target.value)}
+                  placeholder="@username"
+                  className="flex-1 bg-bg border border-white/10 rounded px-3 py-2 text-[10px] font-mono outline-none focus:border-blue transition-colors"
+                />
+              </div>
+              <button 
+                onClick={() => onSocialAction(manualPlatform, manualAccountId)}
+                className="w-full bg-blue text-black py-3 rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-blue/90 transition-all flex items-center justify-center gap-2"
+              >
+                <Scan className="w-3 h-3" /> Start Forensic Scan
+              </button>
+              <div className="flex justify-center gap-4 pt-2 border-t border-white/5">
+                <button 
+                  onClick={() => onSocialAction('twitter', '@elonmusk')}
+                  className="text-[8px] font-mono text-slate-500 hover:text-blue transition-colors uppercase tracking-widest"
+                >
+                  [Elon Musk]
+                </button>
+                <button 
+                  onClick={() => onSocialAction('twitter', '@deepfake_demo')}
+                  className="text-[8px] font-mono text-blue/60 hover:text-blue transition-colors uppercase tracking-widest"
+                >
+                  [Deepfake Demo]
+                </button>
+                <button 
+                  onClick={() => onSocialAction('instagram', '@cristiano')}
+                  className="text-[8px] font-mono text-slate-500 hover:text-pink-500 transition-colors uppercase tracking-widest"
+                >
+                  [Cristiano]
+                </button>
+                <button 
+                  onClick={() => onSocialAction('instagram', '@leomessi')}
+                  className="text-[8px] font-mono text-slate-500 hover:text-pink-500 transition-colors uppercase tracking-widest"
+                >
+                  [Leo Messi]
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-4 justify-center md:justify-end">
+              <div className="w-10 h-10 rounded-full bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
+                <Instagram className="w-5 h-5 text-pink-500" />
+              </div>
+              <div className="w-10 h-10 rounded-full bg-blue/10 border border-blue/20 flex items-center justify-center">
+                <Twitter className="w-5 h-5 text-blue" />
+              </div>
+              <div className="w-10 h-10 rounded-full bg-blue-600/10 border border-blue-600/20 flex items-center justify-center">
+                <Facebook className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+            <button 
+              onClick={onSocialAction}
+              className="flex-1 md:flex-none bg-blue text-black px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue/90 transition-all shadow-[0_0_30px_rgba(0,180,255,0.3)]"
+            >
+              Connect Accounts →
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -467,6 +636,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onLogout, 
   onAnalyze, 
   onViewCase,
+  onWarRoom,
   loading,
   uploadProgress,
   analysis,
@@ -484,29 +654,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isComparisonMode, setIsComparisonMode] = useState(false);
   const [suspectFile, setSuspectFile] = useState<File | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
-  const [connectedAccounts, setConnectedAccounts] = useState<{ platform: string; username: string }[]>(() => {
-    const saved = localStorage.getItem('verimedia_social_accounts');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [connectedAccounts, setConnectedAccounts] = useState<{ platform: string; username: string }[]>([]);
+  const [initialSocialScan, setInitialSocialScan] = useState<{ platform: string; accountId: string } | null>(null);
+  const [recentSocialScans, setRecentSocialScans] = useState<any[]>([]);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      const saved = localStorage.getItem('verimedia_social_accounts');
-      if (saved) setConnectedAccounts(JSON.parse(saved));
+    const savedUser = localStorage.getItem('verimedia_user');
+    if (!savedUser) return;
+    const user = JSON.parse(savedUser);
+
+    const loadData = () => {
+      const accounts = JSON.parse(localStorage.getItem(`verimedia_accounts_${user.uid}`) || '[]');
+      setConnectedAccounts(accounts);
+
+      const scans = JSON.parse(localStorage.getItem(`verimedia_history_${user.uid}`) || '[]');
+      // Sort by timestamp descending
+      scans.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setRecentSocialScans(scans);
     };
-    window.addEventListener('storage', handleStorageChange);
-    // Also listen for custom events if needed, but storage event works for cross-tab
-    // For same-tab, we can use a custom event
-    const handleAccountsUpdate = () => {
-      const saved = localStorage.getItem('verimedia_social_accounts');
-      if (saved) setConnectedAccounts(JSON.parse(saved));
-    };
-    window.addEventListener('social-accounts-updated', handleAccountsUpdate);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('social-accounts-updated', handleAccountsUpdate);
-    };
+
+    loadData();
+
+    // Listen for updates
+    window.addEventListener('social-accounts-updated', loadData);
+    return () => window.removeEventListener('social-accounts-updated', loadData);
   }, []);
 
   useEffect(() => {
@@ -515,7 +686,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return () => window.removeEventListener('open-ai-chat', handleOpenChat);
   }, []);
 
-  const forensicTabs = ['res', 'hm', 'for', 'neu', 'conf', 'xai', 'valid', 'direct', 'rpt', 'email', 'pdf', 'ai-assistant', 'asset-gen', 'deepfake', 'social', 'settings'];
+  const forensicTabs = ['res', 'hm', 'for', 'neu', 'conf', 'xai', 'valid', 'direct', 'rpt', 'email', 'pdf', 'ai-assistant', 'deepfake'];
   const imageOnlyTabs = ['slider', 'exif', 'channels'];
   
   const needsAnalysis = forensicTabs.includes(activeTab) && !analysis;
@@ -523,18 +694,45 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const renderTabContent = () => {
     if (needsAnalysis) {
-      return <SystemOverview title={menuItems.find(i => i.id === activeTab)?.label || 'Forensic'} onAction={() => setActiveTab('up')} />;
+      return <SystemOverview 
+        title={menuItems.find(i => i.id === activeTab)?.label || 'Forensic'} 
+        onAction={() => setActiveTab('up')} 
+        onSocialAction={(p, a) => {
+          if (p && a) {
+            setInitialSocialScan({ platform: p, accountId: a });
+            setActiveTab('social');
+          } else {
+            setActiveTab('scan-hist');
+          }
+        }} 
+        recentScans={recentSocialScans.slice(0, 6)}
+      />;
     }
     
     if (needsImage) {
-      return <SystemOverview title={menuItems.find(i => i.id === activeTab)?.label || 'Image Analysis'} onAction={() => setActiveTab('up')} />;
+      return <SystemOverview 
+        title={menuItems.find(i => i.id === activeTab)?.label || 'Image Analysis'} 
+        onAction={() => setActiveTab('up')} 
+        onSocialAction={(p, a) => {
+          if (p && a) {
+            setInitialSocialScan({ platform: p, accountId: a });
+            setActiveTab('social');
+          } else {
+            setActiveTab('scan-hist');
+          }
+        }} 
+        recentScans={recentSocialScans.slice(0, 6)}
+      />;
     }
 
     switch (activeTab) {
       case 'settings': return <Settings />;
-      case 'social': return <SocialGuard />;
+      case 'social': return <SocialGuard initialPlatform={initialSocialScan?.platform} initialAccountId={initialSocialScan?.accountId} />;
       case 'deepfake': return <DeepfakeDetection analysis={analysis} selectedImage={selectedImage} />;
-      case 'hunt': return <Hunt analysis={analysis} />;
+      case 'hunt':
+      case 'ws':
+      case 'prop':
+        return <Hunt analysis={analysis} onAnalyze={onAnalyze} />;
       case 'conf': return <ConfidenceEngine analysis={analysis} />;
       case 'xai': return <ExplainableAI analysis={analysis} />;
       case 'valid': return <AIValidation analysis={analysis} />;
@@ -603,6 +801,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       case 'channels': return <ColorChannels image={selectedImage || "https://picsum.photos/seed/forensic/800/600"} />;
       case 'batch': return <BatchAnalysis />;
       case 'hist': return <CaseHistory />;
+      case 'scan-hist': 
+        return <ScanHistory 
+          scans={recentSocialScans} 
+          onViewScan={(p, a) => {
+            setInitialSocialScan({ platform: p, accountId: a });
+            setActiveTab('social');
+          }} 
+        />;
       case 'rpt': return <ReportDMCA analysis={analysis} />;
       case 'email': return <EmailReport analysis={analysis} />;
       case 'pdf': return <PDFExport analysis={analysis} />;
@@ -613,7 +819,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         return <Forensics analysis={analysis} selectedImage={selectedImage} onBack={() => setActiveTab('up')} />;
       case 'ws':
       case 'prop':
-        return <Hunt analysis={analysis} />;
+        return <Hunt analysis={analysis} onAnalyze={onAnalyze} />;
       case 'act':
         return (
           <div className="bg-s1 border border-white/5 p-8 rounded-xl space-y-4">
@@ -654,7 +860,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
     };
 
-    const interval = setInterval(fetchIntelligence, 15000);
+    const interval = setInterval(fetchIntelligence, 1800000); // 30 minutes
     fetchIntelligence();
     return () => clearInterval(interval);
   }, []);
@@ -672,6 +878,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { id: 'ai-assistant', label: 'AI Assistant', icon: Bot, group: 'Analysis' },
     { id: 'asset-gen', label: 'Asset Generator', icon: ImageIcon, group: 'Analysis' },
     
+    { id: 'hunt', label: 'Forensic Hunt', icon: Search, group: 'Intelligence' },
+    { id: 'war-room', label: 'Neural War Room', icon: ShieldAlert, group: 'Intelligence' },
     { id: 'ws', label: 'Web Search', icon: Globe, group: 'Intelligence' },
     { id: 'prop', label: 'Propagation', icon: Share2, group: 'Intelligence' },
     { id: 'act', label: 'Action Log', icon: Zap, group: 'Intelligence' },
@@ -689,6 +897,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { id: 'batch', label: 'Batch Analysis', icon: Layers, group: 'Tools' },
     { id: 'hist', label: 'Case History', icon: History, group: 'Tools' },
     { id: 'rpt', label: 'Report & DMCA', icon: FileText, group: 'Tools' },
+    { id: 'scan-hist', label: 'Scan History', icon: History, group: 'Tools' },
     { id: 'email', label: 'Send Email', icon: Mail, group: 'Tools' },
     { id: 'pdf', label: 'PDF Export', icon: Download, group: 'Tools' },
   ];
@@ -796,7 +1005,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {menuItems.filter(i => i.group === group).map(item => (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    if (item.id === 'war-room') onWarRoom();
+                    else setActiveTab(item.id);
+                  }}
                   className={cn(
                     "w-full flex items-center gap-3 px-6 py-2 text-sm transition-all border-l-2",
                     activeTab === item.id 
@@ -1135,9 +1347,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                   <div className="divide-y divide-white/5">
                     {[
-                      { id: 'VMA-9281', name: 'IMG_4829.jpg', status: 'Clean', time: '2 mins ago', color: 'text-green' },
-                      { id: 'VMA-9282', name: 'deepfake_test_01.mp4', status: 'Violation', time: '1 hour ago', color: 'text-red' },
-                      { id: 'VMA-9283', name: 'social_media_ad.png', status: 'Suspicious', time: '3 hours ago', color: 'text-gold' },
+                      { id: `VMA-${Math.floor(Math.random() * 9000) + 1000}`, name: 'IMG_4829.jpg', status: 'Clean', time: '2 mins ago', color: 'text-green' },
+                      { id: `VMA-${Math.floor(Math.random() * 9000) + 1000}`, name: 'deepfake_test_01.mp4', status: 'Violation', time: '1 hour ago', color: 'text-red' },
+                      { id: `VMA-${Math.floor(Math.random() * 9000) + 1000}`, name: 'social_media_ad.png', status: 'Suspicious', time: '3 hours ago', color: 'text-gold' },
                     ].map((item, i) => (
                       <div key={i} onClick={() => onViewCase(item.id)} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors cursor-pointer group">
                         <div className="flex items-center gap-4">
@@ -1239,9 +1451,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <div className="space-y-3">
                     <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Live Network Status</p>
                     {[
-                      { label: 'Bing Visual API', status: 'Connected', load: 12 },
-                      { label: 'Google Lens Node', status: 'Connected', load: 45 },
-                      { label: 'Neural Cluster', status: 'Active', load: 88 },
+                      { label: 'Bing Visual API', status: 'Connected', load: Math.floor(Math.random() * 30) + 10 },
+                      { label: 'Google Lens Node', status: 'Connected', load: Math.floor(Math.random() * 40) + 30 },
+                      { label: 'Neural Cluster', status: 'Active', load: Math.floor(Math.random() * 20) + 75 },
                     ].map((s, i) => (
                       <div key={i} className="space-y-1.5">
                         <div className="flex items-center justify-between text-[11px]">
@@ -1266,6 +1478,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
           )}
+          <Footer />
         </div>
       </main>
     </div>

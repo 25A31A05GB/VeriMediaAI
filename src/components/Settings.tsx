@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Twitter, 
   Instagram, 
@@ -14,53 +14,85 @@ import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 
-export const Settings: React.FC = () => {
-  const [connectedAccounts, setConnectedAccounts] = React.useState<{ platform: string; username: string }[]>(() => {
-    const saved = localStorage.getItem('verimedia_social_accounts');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [showUsernamePrompt, setShowUsernamePrompt] = React.useState(false);
-  const [pendingPlatform, setPendingPlatform] = React.useState<string | null>(null);
-  const [tempUsername, setTempUsername] = React.useState('');
+interface ConnectedAccount {
+  platform: string;
+  username: string;
+  connectedAt: any;
+}
 
-  React.useEffect(() => {
-    const handleUpdate = () => {
-      const saved = localStorage.getItem('verimedia_social_accounts');
-      if (saved) setConnectedAccounts(JSON.parse(saved));
+export const Settings: React.FC = () => {
+  const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
+  const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
+  const [pendingPlatform, setPendingPlatform] = useState<string | null>(null);
+  const [tempUsername, setTempUsername] = useState('');
+
+  // Fetch connected accounts from localStorage
+  useEffect(() => {
+    const savedUser = localStorage.getItem('verimedia_user');
+    if (!savedUser) return;
+    const user = JSON.parse(savedUser);
+
+    const loadAccounts = () => {
+      const accounts = JSON.parse(localStorage.getItem(`verimedia_accounts_${user.uid}`) || '[]');
+      setConnectedAccounts(accounts);
     };
-    window.addEventListener('social-accounts-updated', handleUpdate);
-    
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'SOCIAL_AUTH_SUCCESS') {
+
+    loadAccounts();
+    window.addEventListener('social-accounts-updated', loadAccounts);
+    return () => window.removeEventListener('social-accounts-updated', loadAccounts);
+  }, []);
+
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      const savedUser = localStorage.getItem('verimedia_user');
+      if (event.data?.type === 'SOCIAL_AUTH_SUCCESS' && savedUser) {
+        const user = JSON.parse(savedUser);
         const { platform } = event.data;
-        const saved = localStorage.getItem('verimedia_social_accounts');
-        const current = saved ? JSON.parse(saved) : [];
-        if (!current.find((a: any) => a.platform === platform)) {
-          const username = tempUsername || `@user_${Math.random().toString(36).substr(2, 5)}`;
-          const updated = [...current, { platform, username }];
-          localStorage.setItem('verimedia_social_accounts', JSON.stringify(updated));
-          setConnectedAccounts(updated);
+        const username = tempUsername || `@user_${Math.random().toString(36).substr(2, 5)}`;
+        
+        try {
+          const accountData = {
+            platform,
+            username,
+            userId: user.uid,
+            connectedAt: new Date().toISOString()
+          };
+          
+          const accounts = JSON.parse(localStorage.getItem(`verimedia_accounts_${user.uid}`) || '[]');
+          const filtered = accounts.filter((a: any) => a.platform !== platform);
+          localStorage.setItem(`verimedia_accounts_${user.uid}`, JSON.stringify([...filtered, accountData]));
+          
+          toast.success(`${platform.charAt(0).toUpperCase() + platform.slice(1)} account connected!`);
           window.dispatchEvent(new CustomEvent('social-accounts-updated'));
+        } catch (error) {
+          console.error('Error connecting account:', error);
+          toast.error('Failed to connect account.');
+        } finally {
+          setShowUsernamePrompt(false);
+          setTempUsername('');
         }
-        toast.success(`${platform.charAt(0).toUpperCase() + platform.slice(1)} account connected!`);
-        setShowUsernamePrompt(false);
-        setTempUsername('');
       }
     };
     window.addEventListener('message', handleMessage);
-
-    return () => {
-      window.removeEventListener('social-accounts-updated', handleUpdate);
-      window.removeEventListener('message', handleMessage);
-    };
+    return () => window.removeEventListener('message', handleMessage);
   }, [tempUsername]);
 
-  const disconnectAccount = (platform: string) => {
-    const updated = connectedAccounts.filter(a => a.platform !== platform);
-    setConnectedAccounts(updated);
-    localStorage.setItem('verimedia_social_accounts', JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('social-accounts-updated'));
-    toast.success(`${platform.charAt(0).toUpperCase() + platform.slice(1)} account disconnected.`);
+  const disconnectAccount = async (platform: string) => {
+    const savedUser = localStorage.getItem('verimedia_user');
+    if (!savedUser) return;
+    const user = JSON.parse(savedUser);
+
+    try {
+      const accounts = JSON.parse(localStorage.getItem(`verimedia_accounts_${user.uid}`) || '[]');
+      const filtered = accounts.filter((a: any) => a.platform !== platform);
+      localStorage.setItem(`verimedia_accounts_${user.uid}`, JSON.stringify(filtered));
+      
+      window.dispatchEvent(new CustomEvent('social-accounts-updated'));
+      toast.success(`${platform.charAt(0).toUpperCase() + platform.slice(1)} account disconnected.`);
+    } catch (error) {
+      console.error('Error disconnecting account:', error);
+      toast.error('Failed to disconnect account.');
+    }
   };
 
   const connectAccount = (platform: string) => {
@@ -68,7 +100,7 @@ export const Settings: React.FC = () => {
     setShowUsernamePrompt(true);
   };
 
-  const proceedWithConnection = async () => {
+  const proceedWithConnection = async (isMock: boolean = false) => {
     if (!tempUsername.trim()) {
       toast.error("Please enter your handle.");
       return;
@@ -78,7 +110,7 @@ export const Settings: React.FC = () => {
     if (!platform) return;
 
     try {
-      const response = await fetch(`/api/auth/social/url/${platform}`);
+      const response = await fetch(`/api/auth/social/url/${platform}?mock=${isMock}`);
       const { url } = await response.json();
       
       const width = 600;
@@ -94,6 +126,8 @@ export const Settings: React.FC = () => {
     } catch (error) {
       console.error('Auth error:', error);
       toast.error('Failed to initiate connection.');
+    } finally {
+      setShowUsernamePrompt(false);
     }
   };
 
@@ -310,21 +344,27 @@ export const Settings: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <button 
-                onClick={() => {
-                  setShowUsernamePrompt(false);
-                  setTempUsername('');
-                }}
+                onClick={() => proceedWithConnection(true)}
                 className="py-4 rounded-xl bg-white/5 border border-white/5 text-[10px] font-mono uppercase tracking-widest hover:bg-white/10 transition-all"
               >
-                Cancel
+                Simulate Connection
               </button>
               <button 
-                onClick={proceedWithConnection}
+                onClick={() => proceedWithConnection(false)}
                 className="py-4 rounded-xl bg-blue text-black font-black text-[10px] uppercase tracking-widest hover:bg-blue/90 transition-all shadow-[0_0_30px_rgba(0,180,255,0.3)]"
               >
                 Connect Tunnel →
               </button>
             </div>
+            <button 
+              onClick={() => {
+                setShowUsernamePrompt(false);
+                setTempUsername('');
+              }}
+              className="w-full py-2 text-[8px] font-mono uppercase tracking-widest text-slate-600 hover:text-slate-400 transition-all"
+            >
+              Cancel Integration
+            </button>
           </div>
         </div>
       </div>
